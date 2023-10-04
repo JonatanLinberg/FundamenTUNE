@@ -40,7 +40,7 @@ class Interval():
 		"m7",
 		"M7",
 	]
-	# ratios of (12-tone) equal temperament intervals
+	# fractions of (12-tone) equal temperament intervals
 	_NOTE_EQTT = [ equal_temp(i) for i in range(12) ]
 
 	@staticmethod
@@ -70,7 +70,7 @@ class Interval():
 				self.note_i = i
 
 	@property
-	def ratio(self):
+	def fraction(self):
 		return self.numer / self.denom
 
 	@property
@@ -89,10 +89,10 @@ class Interval():
 	def frequency(self):
 		try: 
 			# fundamental is interval
-			return self.ratio * self.fundamental.frequency
+			return self.fraction * self.fundamental.frequency
 		except AttributeError:
 			# fundamental is frequency
-			return self.ratio * self.fundamental
+			return self.fraction * self.fundamental
 
 	def rescale_to(self, frequency):
 		new_fundamental = (frequency * self.denom) / self.numer
@@ -106,7 +106,7 @@ class Interval():
 
 	# difference in cents
 	def __sub__(self, other):
-		return cent_diff(self.ratio, other.ratio)
+		return cent_diff(self.fraction, other.fraction)
 
 	# "musically" added intervals, i.e. M3 * P5 == M7
 	# if other is number, multiply frequency
@@ -127,7 +127,7 @@ class Interval():
 		return Interval(self.numer, other.numer)
 
 	def __str__(self):
-		return f"[{self.numer}:{self.denom}]({self.frequency:.2f}) {self.note_name} {cent_diff(self.ratio, self.closest_eqtt):+.1f} cents"
+		return f"[{self.numer}:{self.denom}]({self.frequency:.2f}) {self.note_name} {cent_diff(self.fraction, self.closest_eqtt):+.1f} cents"
 
 	def __repr__(self):
 		return f"<class Interval: {self.__str__()}>"
