@@ -40,6 +40,7 @@ class Interval():
 		"m7",
 		"M7",
 	]
+	# ratios of (12-tone) equal temperament intervals
 	_NOTE_EQTT = [ equal_temp(i) for i in range(12) ]
 
 	@staticmethod
@@ -56,9 +57,10 @@ class Interval():
 		cd = gcd(numer, denom)
 		return numer//cd, denom//cd
 
-	def __init__(self, numer, denom):
+	def __init__(self, numer, denom, fundamental=1.0):
 		self.numer, self.denom = Interval.normalise(numer, denom)
-		
+		self.fundamental = fundamental
+
 		frac = self.numer / self.denom
 		dist = 100
 		for i in range(12):
@@ -68,7 +70,7 @@ class Interval():
 				self.note_i = i
 
 	@property
-	def fraction(self):
+	def ratio(self):
 		return self.numer / self.denom
 
 	@property
@@ -83,20 +85,36 @@ class Interval():
 	def closest_eqtt(self):
 		return Interval._NOTE_EQTT[self.note_i]
 
+	@property
+	def frequency(self):
+		try: 
+			# fundamental is interval
+			return self.ratio * self.fundamental.frequency
+		except AttributeError:
+			# fundamental is frequency
+			return self.ratio * self.fundamental
+
+	def rescale_to(self, frequency):
+		new_fundamental = (frequency * self.denom) / self.numer
+		try:
+			self.fundamental.rescale_to(new_fundamental)
+		except AttributeError:
+			self.fundamental = new_fundamental
+
 	def copy(self):
 		return Interval(self.numer, self.denom)
 
 	# difference in cents
 	def __sub__(self, other):
-		return cent_diff(self.fraction, other.fraction)
+		return cent_diff(self.ratio, other.ratio)
 
 	# "musically" added intervals, i.e. M3 * P5 == M7
+	# if other is number, multiply frequency
 	def __mul__(self, other):
 		try:
 			return Interval(self.numer * other.numer, self.denom * other.denom)
 		except AttributeError:
-			pass
-		return self.fraction * other
+			return self.frequency * other
 	__rmul__ = __mul__
 
 	def __pow__(self, other):
@@ -109,7 +127,7 @@ class Interval():
 		return Interval(self.numer, other.numer)
 
 	def __str__(self):
-		return f"[{self.numer}:{self.denom}] {self.note_name} {cent_diff(self.fraction, self.closest_eqtt):+.1f} cents"
+		return f"[{self.numer}:{self.denom}]({self.frequency:.2f}) {self.note_name} {cent_diff(self.ratio, self.closest_eqtt):+.1f} cents"
 
 	def __repr__(self):
 		return f"<class Interval: {self.__str__()}>"
