@@ -37,7 +37,16 @@ def print_help():
 		"[ Add note ]",
 		" > add <name> <numerator>:<denominator> <fundamental>")
 	print_rows(
-		"[ tune notes ]",
+		"[ Copy note ]",
+		" > copy <name> <new note>")
+	print_rows(
+		"[ Rename note ]",
+		" > name <note> <new name>")
+	print_rows(
+		"[ Delete note ]",
+		" > del <name>")
+	print_rows(
+		"[ Tune notes ]",
 		" > tune <name> <frequency>")
 	print_rows(
 		"[ Print help menu ]",
