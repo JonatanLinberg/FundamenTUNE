@@ -9,6 +9,9 @@ Suffer no more, start using **FundamenTUNE** today for all your crazy tuning nee
 - [x] ` > del <note>`
 - [x] ` > name <note> <new name>`
 - [x] ` > base <note A> <note B>`
-- [ ] ` > calc <note> <expression>`
+- [x] ` > calc <note> <expression>`
 - [ ] ` > find <interval name> <fundamental> <depth>`
 - [ ] ` > tune <note A> <note B> <delta interval>`
+
+## TODO:
+- [ ] Create App class interface
