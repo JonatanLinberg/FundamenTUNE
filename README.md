@@ -8,6 +8,7 @@ Suffer no more, start using **FundamenTUNE** today for all your crazy tuning nee
 - [x] ` > copy <note> <new note>`
 - [x] ` > del <note>`
 - [x] ` > name <note> <new name>`
-- [ ] ` > base <note A> <note B>`
+- [x] ` > base <note A> <note B>`
+- [ ] ` > calc <note> <expression>`
 - [ ] ` > find <interval name> <fundamental> <depth>`
 - [ ] ` > tune <note A> <note B> <delta interval>`
