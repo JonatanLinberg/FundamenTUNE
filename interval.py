@@ -104,7 +104,7 @@ class Interval():
 			self.fundamental = new_fundamental
 
 	def copy(self):
-		return Interval(self.numer, self.denom, fundamental=fundamental)
+		return Interval(self.numer, self.denom, fundamental=self.fundamental)
 
 	# difference in cents
 	def __sub__(self, other):
@@ -120,6 +120,10 @@ class Interval():
 	__rmul__ = __mul__
 
 	def __pow__(self, other):
+		try:
+			other = int(other)
+		except:
+			raise ValueError(f"{other} cannot be converted to an integer")
 		I_n = self.copy()
 		for i in range(other-1):
 			I_n *= self

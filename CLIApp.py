@@ -68,11 +68,19 @@ def parse_instruction(string):
 	else:
 		return strings[0], strings[1:]
 
+
 def parse_arg(chord, s):
 	if s in chord:
 		return chord[s]
 	else:
 		return float(s)
+
+
+def parse_dense_expression(expression, ops):
+	for op in ops:
+		if op in expression:
+			a, b = expression.split(op)
+			return a, op, b
 
 
 def get_yes_no(s):
@@ -99,7 +107,17 @@ def add_note(chord, name, interval):
 #   Command handlers
 ##################################
 def cmd_add(chord, name, ratio, fundamental=None):
-	numer, denom = [ int(x) for x in ratio.split(":") ]
+	try:
+		numer, denom = [ int(x) for x in ratio.split(":") ]
+	except ValueError:
+		if fundamental is None:
+			# no input ratio, only frequency
+			try:
+				fundamental = float(ratio)
+			except Exception:
+				raise Exception("Could not parse arguments")
+			numer = denom = 1
+
 	if fundamental is None:
 		pass
 	elif fundamental in chord:
@@ -142,10 +160,14 @@ def cmd_base(chord, name, base):
 
 
 def cmd_calc(chord, name, *expression):
+	if len(expression) == 1:
+		ops = ("**", "*", "/")
+		expression = parse_dense_expression(expression[0], ops)
+	
 	if len(expression) != 3:
 		raise Exception("Only binary expressions are supported at this time")
 
-	op = expression[1]	
+	op = expression[1]
 	a = parse_arg(chord, expression[0])
 	b = parse_arg(chord, expression[2])
 
