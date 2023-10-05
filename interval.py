@@ -104,7 +104,7 @@ class Interval():
 			self.fundamental = new_fundamental
 
 	def copy(self):
-		return Interval(self.numer, self.denom)
+		return Interval(self.numer, self.denom, fundamental=fundamental)
 
 	# difference in cents
 	def __sub__(self, other):

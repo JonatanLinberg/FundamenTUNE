@@ -74,7 +74,7 @@ def get_yes_no(s):
 ##################################
 #   Command handlers
 ##################################
-def add_note(chord, name, ratio, fundamental=1):
+def add_note(chord, name, ratio, fundamental=None):
 	numer, denom = [ int(x) for x in ratio.split(":") ]
 	if fundamental in chord:
 		fundamental = chord[fundamental]
@@ -96,6 +96,17 @@ def del_note(chord, name):
 def tune_notes(chord, name, freq):
 	chord[name].rescale_to(float(freq))
 
+
+def name_note(chord, name, new_name):
+	if name not in chord:
+		raise Exception(f'Cannot find note "{name}"')
+	chord[new_name] = chord.pop(name)
+
+
+def copy_note(chord, name, new_note):
+	if name not in chord:
+		raise Exception(f'Cannot find note "{name}"')
+	chord[new_name] = chord[name].copy()
 
 ##################################
 #   MAIN
@@ -134,6 +145,18 @@ def main(*args, **kwargs):
 					del_note(chord, *args)
 				except Exception as e:
 					error = f"Could not delete note! ({e})"
+
+			elif cmd == "copy":
+				try:
+					copy_note(chord, *args)
+				except Exception as e:
+					error = f"Could not copy note! ({e})"
+
+			elif cmd == "name":
+				try:
+					name_note(chord, *args)
+				except Exception as e:
+					error = f"Could not rename note! ({e})"
 
 			elif cmd == "tune":
 				try:
