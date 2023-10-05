@@ -26,10 +26,10 @@ def print_chord(chord):
 			'Write "add <name> <numerator>:<denominator> <fundamental>" to add your first note.',
 		    "Ex:",
 		    " > add E 5:4")
-
-	for note in chord:
-		print(f"[{note}] {chord[note]}")
-
+	else:
+		for note in chord:
+			print(f"[{note}] {chord[note]}")
+		print()
 
 def print_help():
 	print("Available commands:")
@@ -68,54 +68,97 @@ def parse_instruction(string):
 	else:
 		return strings[0], strings[1:]
 
+def parse_arg(chord, s):
+	if s in chord:
+		return chord[s]
+	else:
+		return float(s)
+
 
 def get_yes_no(s):
 	out = str(s) + " (y/n)"
 	ans = input(out)
 	if ans == "y":
-		return true
+		return True
 	elif ans == "n":
-		return false
+		return False
 	else:
 		raise Exception("y/n answer not recognised!")
 
 
 ##################################
-#   Command handlers
+#   Helper functions
 ##################################
-def add_note(chord, name, ratio, fundamental=None):
-	numer, denom = [ int(x) for x in ratio.split(":") ]
-	if fundamental in chord:
-		fundamental = chord[fundamental]
-	else:
-		fundamental = float(fundamental)
-
-	interval = Interval(numer, denom, fundamental=fundamental)
+def add_note(chord, name, interval):
 	if name not in chord or \
 	   get_yes_no(f"{name} already exists in your chord, overwrite?"):
 		chord[name] = interval
 
 
-def del_note(chord, name):
+##################################
+#   Command handlers
+##################################
+def cmd_add(chord, name, ratio, fundamental=None):
+	numer, denom = [ int(x) for x in ratio.split(":") ]
+	if fundamental is None:
+		pass
+	elif fundamental in chord:
+		fundamental = chord[fundamental]
+	else:
+		fundamental = float(fundamental)
+
+	interval = Interval(numer, denom, fundamental=fundamental)
+	add_note(chord, name, interval)
+
+
+def cmd_del(chord, name):
 	if name not in chord:
 		raise Exception(f'Cannot find note "{name}"')
 	del chord[name]
 
 
-def tune_notes(chord, name, freq):
+def cmd_tune(chord, name, freq):
 	chord[name].rescale_to(float(freq))
 
 
-def name_note(chord, name, new_name):
+def cmd_name(chord, name, new_name):
 	if name not in chord:
 		raise Exception(f'Cannot find note "{name}"')
 	chord[new_name] = chord.pop(name)
 
 
-def copy_note(chord, name, new_note):
+def cmd_copy(chord, name, new_note):
 	if name not in chord:
 		raise Exception(f'Cannot find note "{name}"')
 	chord[new_name] = chord[name].copy()
+
+
+def cmd_base(chord, name, base):
+	if name not in chord:
+		raise Exception(f'Cannot find note "{name}"')
+	if base not in chord:
+		raise Exception(f'Cannot find note "{base}"')
+	chord[name].fundamental = chord[base]
+
+
+def cmd_calc(chord, name, *expression):
+	if len(expression) != 3:
+		raise Exception("Only binary expressions are supported at this time")
+
+	op = expression[1]	
+	a = parse_arg(chord, expression[0])
+	b = parse_arg(chord, expression[2])
+
+	if op == "*":
+		interval = a*b
+	elif op == "/":
+		interval = a/b
+	elif op == "**":
+		interval = a**b
+	else:
+		raise Exception(f"{op} is not a valid operator")
+
+	add_note(chord, name, interval)
 
 
 ##################################
@@ -141,38 +184,51 @@ def main(*args, **kwargs):
 		
 		if (not_quit(inp)):
 			cmd, args = parse_instruction(inp)
+			cmd = cmd.lower()
 			if cmd is None:
 				error = "Could not parse instruction!"
 
 			elif cmd == "add":
 				try:
-					add_note(chord, *args)
+					cmd_add(chord, *args)
 				except Exception as e:
 					error = f"Could not add note! ({e})"
 
 			elif cmd == "del":
 				try:
-					del_note(chord, *args)
+					cmd_del(chord, *args)
 				except Exception as e:
 					error = f"Could not delete note! ({e})"
 
 			elif cmd == "copy":
 				try:
-					copy_note(chord, *args)
+					cmd_copy(chord, *args)
 				except Exception as e:
 					error = f"Could not copy note! ({e})"
 
 			elif cmd == "name":
 				try:
-					name_note(chord, *args)
+					cmd_name(chord, *args)
 				except Exception as e:
 					error = f"Could not rename note! ({e})"
 
 			elif cmd == "tune":
 				try:
-					tune_notes(chord, *args)
+					cmd_tune(chord, *args)
 				except Exception as e:
-					error = f"Could note tune notes! ({e})"
+					error = f"Could not tune notes! ({e})"
+
+			elif cmd == "base":
+				try:
+					cmd_base(chord, *args)
+				except Exception as e:
+					error = f"Could not rebase note! ({e})"
+
+			elif cmd == "calc":
+				try:
+					cmd_calc(chord, *args)
+				except Exception as e:
+					error = f"Could not calc note! ({e})"
 
 			elif cmd == "help":
 				clear_screen()
