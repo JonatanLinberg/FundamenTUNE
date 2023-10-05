@@ -57,7 +57,7 @@ class Interval():
 		cd = gcd(numer, denom)
 		return numer//cd, denom//cd
 
-	def __init__(self, numer, denom, fundamental=1.0):
+	def __init__(self, numer, denom, fundamental=None):
 		self.numer, self.denom = Interval.normalise(numer, denom)
 		self.fundamental = fundamental
 
@@ -87,6 +87,8 @@ class Interval():
 
 	@property
 	def frequency(self):
+		if (self.fundamental is None):
+			return self.fraction
 		try: 
 			# fundamental is interval
 			return self.fraction * self.fundamental.frequency

@@ -1,11 +1,17 @@
 import os
 from interval import Interval
 
+
+##################################
+#   Print functions
+##################################
 def clear_screen():
 	os.system('cls' if os.name == 'nt' else 'clear')
 
+
 def print_rows(*rows):
 	print(*rows, "", sep='\n')
+
 
 def print_header():
 	print_rows(
@@ -13,15 +19,17 @@ def print_header():
 		"==================        FundamenTUNE        ==================",
 		"================================================================")
 
+
 def print_chord(chord):
 	if len(chord) == 0:
 		print_rows(
 			'Write "add <name> <numerator>:<denominator> <fundamental>" to add your first note.',
 		    "Ex:",
-		    " > add E 3:2")
+		    " > add E 5:4")
 
 	for note in chord:
 		print(f"[{note}] {chord[note]}")
+
 
 def print_help():
 	print("Available commands:")
@@ -35,9 +43,14 @@ def print_help():
 		"[ Print help menu ]",
 		" > help")
 
+
+##################################
+#   Input Parsers
+##################################
 def not_quit(s):
 	s = s.strip()
 	return s != "q" and s != "quit"
+
 
 def parse_instruction(string):
 	strings = [ s.strip() for s in string.split(" ") ]
@@ -46,6 +59,21 @@ def parse_instruction(string):
 	else:
 		return strings[0], strings[1:]
 
+
+def get_yes_no(s):
+	out = str(s) + " (y/n)"
+	ans = input(out)
+	if ans == "y":
+		return true
+	elif ans == "n":
+		return false
+	else:
+		raise Exception("y/n answer not recognised!")
+
+
+##################################
+#   Command handlers
+##################################
 def add_note(chord, name, ratio, fundamental=1):
 	numer, denom = [ int(x) for x in ratio.split(":") ]
 	if fundamental in chord:
@@ -54,18 +82,24 @@ def add_note(chord, name, ratio, fundamental=1):
 		fundamental = float(fundamental)
 
 	interval = Interval(numer, denom, fundamental=fundamental)
-	if name in chord:
-		ans = input(f"{name} already exists in your chord, overwrite? (y/n)")
-		if ans == "y":
-			chord[name] = interval
-		elif ans != "n":
-			raise Exception("y/n answer not recognised!")
-	else:
+	if name not in chord or \
+	   get_yes_no(f"{name} already exists in your chord, overwrite?"):
 		chord[name] = interval
+
+
+def del_note(chord, name):
+	if name not in chord:
+		raise Exception(f'Cannot find note "{name}"')
+	del chord[name]
+
 
 def tune_notes(chord, name, freq):
 	chord[name].rescale_to(float(freq))
 
+
+##################################
+#   MAIN
+##################################
 def main(*args, **kwargs):
 	chord = {}
 	error = None
@@ -94,6 +128,12 @@ def main(*args, **kwargs):
 					add_note(chord, *args)
 				except Exception as e:
 					error = f"Could not add note! ({e})"
+
+			elif cmd == "del":
+				try:
+					del_note(chord, *args)
+				except Exception as e:
+					error = f"Could not delete note! ({e})"
 
 			elif cmd == "tune":
 				try:
