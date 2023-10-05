@@ -117,6 +117,7 @@ def copy_note(chord, name, new_note):
 		raise Exception(f'Cannot find note "{name}"')
 	chord[new_name] = chord[name].copy()
 
+
 ##################################
 #   MAIN
 ##################################
@@ -177,7 +178,7 @@ def main(*args, **kwargs):
 				clear_screen()
 				print_header()
 				print_help()
-				input("Press any key to continue...")
+				input("Press Enter to continue...")
 			else:
 				error = "Command not recognised!"
 		
