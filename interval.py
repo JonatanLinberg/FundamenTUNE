@@ -1,8 +1,8 @@
 from math import log, gcd
 
 # Calculates equal temperament tuning of n semitones
-def equal_temp(n):
-	return 2**(n / 12)
+def equal_temp(n, base = 12):
+	return 2**(n / base)
 
 # calculates cent difference between two notes
 def cent_diff(a, b):
@@ -40,15 +40,14 @@ class Interval():
 		"m7",
 		"M7",
 	]
-	# fractions of (12-tone) equal temperament intervals
-	_NOTE_EQTT = [ equal_temp(i) for i in range(12) ]
 
 	@staticmethod
-	def normalise(numer, denom):
-		while (numer / denom < 1):
+	def normalise(numer, denom, in_octave=True):
+		while in_octave and (numer / denom < 1):
 			denom /= 2
-		while (numer / denom >= 2):
+		while in_octave and (numer / denom >= 2):
 			denom *= 2
+
 		while not (is_int(numer) and is_int(denom)):
 			numer *= 2
 			denom *= 2
@@ -57,17 +56,24 @@ class Interval():
 		cd = gcd(numer, denom)
 		return numer//cd, denom//cd
 
-	def __init__(self, numer, denom, fundamental=None):
-		self.numer, self.denom = Interval.normalise(numer, denom)
+	def __init__(self, numer, denom, fundamental=None, in_octave=False):
+		self.numer, self.denom = Interval.normalise(numer, denom, in_octave=in_octave)
 		self.fundamental = fundamental
 
-		frac = self.numer / self.denom
+		# calc closest eqtt interval
+		n_norm, d_norm = Interval.normalise(numer, denom)
+		frac = n_norm / d_norm
 		dist = 100
 		for i in range(12):
-			d = abs(cent_diff(frac, Interval._NOTE_EQTT[i]))
+			d = abs(cent_diff(frac, equal_temp(i)))
 			if d < dist:
 				dist = d
 				self.note_i = i
+		# check P8 as P1
+		frac /= 2
+		d = abs(cent_diff(frac, equal_temp(0)))
+		if d < dist:
+			self.note_i = 0
 
 	@property
 	def fraction(self):
@@ -83,7 +89,14 @@ class Interval():
 
 	@property
 	def closest_eqtt(self):
-		return Interval._NOTE_EQTT[self.note_i]
+		return equal_temp(self.note_i)
+
+	@property
+	def cent_off(self):
+		d = cent_diff(self.normalised().frequency, self.closest_eqtt)
+		if d > 50:
+			return (d % 100) - 100
+		return d
 
 	@property
 	def frequency(self):
@@ -106,6 +119,9 @@ class Interval():
 	def copy(self):
 		return Interval(self.numer, self.denom, fundamental=self.fundamental)
 
+	def normalised(self):
+		return Interval(*Interval.normalise(self.numer, self.denom), fundamental=self.fundamental)
+
 	# difference in cents
 	def __sub__(self, other):
 		return cent_diff(self.fraction, other.fraction)
@@ -113,10 +129,10 @@ class Interval():
 	# "musically" added intervals, i.e. M3 * P5 == M7
 	# if other is number, multiply frequency
 	def __mul__(self, other):
-		try:
-			return Interval(self.numer * other.numer, self.denom * other.denom)
-		except AttributeError:
-			return self.frequency * other
+		if isinstance(other, Interval):
+			return Interval(self.numer * other.numer, self.denom * other.denom, fundamental=self.fundamental)
+		else:
+			return Interval(self.numer * float(other), self.denom, fundamental=self.fundamental)
 	__rmul__ = __mul__
 
 	def __pow__(self, other):
@@ -130,10 +146,13 @@ class Interval():
 		return I_n
 
 	def __truediv__(self, other):
-		return Interval(self.numer, other.numer)
+		if isinstance(other, Interval):
+			return Interval(self.frequency, other.frequency, fundamental=other)
+		else:
+			return Interval(self.numer / float(other), self.denom, fundamental=self.fundamental)
 
 	def __str__(self):
-		return f"[{self.numer}:{self.denom}]({self.frequency:.2f}) {self.note_name} {cent_diff(self.fraction, self.closest_eqtt):+.1f} cents"
+		return f"[{self.numer}:{self.denom}]({self.frequency:.2f}) {self.note_name} {self.cent_off:+.1f} cents"
 
 	def __repr__(self):
 		return f"<class Interval: {self.__str__()}>"

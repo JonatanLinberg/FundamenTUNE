@@ -10,9 +10,13 @@ Suffer no more, start using **FundamenTUNE** today for all your crazy tuning nee
 - [x] ` > name <note> <new name>`
 - [x] ` > base <note A> <note B>`
 - [x] ` > calc <note> <expression>`
+- [x] ` > base <note A> <fundamental>`
+- [x] ` > tune <note A> <note B> <delta interval>`
+- [ ] ` > norm <name>`
 - [ ] ` > set <note> <ratio>`
 - [ ] ` > find <interval name> <fundamental> <depth>`
-- [ ] ` > tune <note A> <note B> <delta interval>`
+
 
 ## TODO:
 - [ ] Create App class interface
+- [ ] Create Chord class

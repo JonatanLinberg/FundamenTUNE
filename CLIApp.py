@@ -47,7 +47,12 @@ def print_help():
 		" > del <name>")
 	print_rows(
 		"[ Tune notes ]",
-		" > tune <name> <frequency>")
+		" > tune <name> <frequency>",
+		"or",
+		" > tune <name> <fundamental> <delta ratio>")
+	print_rows(
+		"[ Base notes ]",
+		" > base <name> <new fundamental>")
 	print_rows(
 		"[ Print help menu ]",
 		" > help")
@@ -62,7 +67,7 @@ def not_quit(s):
 
 
 def parse_instruction(string):
-	strings = [ s.strip() for s in string.split(" ") ]
+	strings = [ s.strip() for s in string.strip().split(" ") ]
 	if len(strings) == 0:
 		return None, None
 	else:
@@ -84,7 +89,7 @@ def parse_dense_expression(expression, ops):
 
 
 def get_yes_no(s):
-	out = str(s) + " (y/n)"
+	out = str(s) + " (y/n): "
 	ans = input(out)
 	if ans == "y":
 		return True
@@ -102,25 +107,29 @@ def add_note(chord, name, interval):
 	   get_yes_no(f"{name} already exists in your chord, overwrite?"):
 		chord[name] = interval
 
+def check_exists(chord, name):
+	if name not in chord:
+		raise Exception(f'Cannot find note "{name}"')
 
 ##################################
 #   Command handlers
 ##################################
-def cmd_add(chord, name, ratio, fundamental=None):
+def cmd_add(chord, name, ratio=None, fundamental=None):
 	try:
 		numer, denom = [ int(x) for x in ratio.split(":") ]
-	except ValueError:
+	except ValueError: # probably freq
+		numer = denom = 1
 		if fundamental is None:
-			# no input ratio, only frequency
 			try:
 				fundamental = float(ratio)
-			except Exception:
-				raise Exception("Could not parse arguments")
-			numer = denom = 1
-
+			except ValueError:
+				raise Exception(f"Could not parse arguments: (ratio: {ratio}, fundamental: {fundamental})")
+	except AttributeError: # no ratio or fundamental
+		numer = denom = 1
+	
 	if fundamental is None:
-		pass
-	elif fundamental in chord:
+		fundamental = 1
+	if fundamental in chord:
 		fundamental = chord[fundamental]
 	else:
 		fundamental = float(fundamental)
@@ -130,33 +139,44 @@ def cmd_add(chord, name, ratio, fundamental=None):
 
 
 def cmd_del(chord, name):
-	if name not in chord:
-		raise Exception(f'Cannot find note "{name}"')
+	check_exists(chord, name)
 	del chord[name]
 
 
-def cmd_tune(chord, name, freq):
-	chord[name].rescale_to(float(freq))
+def cmd_tune(chord, name, ref, d_ratio=None):
+	if d_ratio is None:
+		d_ratio = "1:1"
+	try:
+		n, d = [int(a) for a in d_ratio.split(':')]
+	except:
+		raise Exception(f'Ratio {d_ratio} could not be parsed.')
+
+	check_exists(chord, name)
+	try:
+		check_exists(chord, ref)
+		freq = chord[ref].frequency * n / d
+		chord[name].rescale_to(float(freq))
+	except Exception:
+		chord[name].rescale_to(float(ref))
 
 
 def cmd_name(chord, name, new_name):
-	if name not in chord:
-		raise Exception(f'Cannot find note "{name}"')
+	check_exists(chord, name)
 	chord[new_name] = chord.pop(name)
 
 
 def cmd_copy(chord, name, new_note):
-	if name not in chord:
-		raise Exception(f'Cannot find note "{name}"')
+	check_exists(chord, name)
 	chord[new_name] = chord[name].copy()
 
 
 def cmd_base(chord, name, base):
-	if name not in chord:
-		raise Exception(f'Cannot find note "{name}"')
-	if base not in chord:
-		raise Exception(f'Cannot find note "{base}"')
-	chord[name].fundamental = chord[base]
+	check_exists(chord, name)
+	try: 
+		check_exists(chord, base)
+		chord[name].fundamental = chord[base]
+	except Exception:
+		chord[name].fundamental = float(base)
 
 
 def cmd_calc(chord, name, *expression):
