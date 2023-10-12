@@ -92,8 +92,8 @@ class Interval():
 		return equal_temp(self.note_i)
 
 	@property
-	def cent_off(self):
-		d = cent_diff(self.normalised().frequency, self.closest_eqtt)
+	def cents_off(self):
+		d = cent_diff(self.normalised().fraction, self.closest_eqtt)
 		if d > 50:
 			return (d % 100) - 100
 		return d
@@ -152,7 +152,7 @@ class Interval():
 			return Interval(self.numer / float(other), self.denom, fundamental=self.fundamental)
 
 	def __str__(self):
-		return f"[{self.numer}:{self.denom}]({self.frequency:.2f}) {self.note_name} {self.cent_off:+.1f} cents"
+		return f"[{self.numer}:{self.denom}][{self.frequency:.2f} Hz] {self.note_abbr}({self.cents_off:+.1f} cents)"
 
 	def __repr__(self):
 		return f"<class Interval: {self.__str__()}>"

@@ -20,7 +20,9 @@ def print_header():
 		"================================================================")
 
 
-def print_chord(chord):
+def print_chord(chord, sort=True):
+	if sort:
+		chord = dict(sorted(chord.items(), key=lambda item: item[1].frequency))
 	if len(chord) == 0:
 		print_rows(
 			'Write "add <name> <numerator>:<denominator> <fundamental>" to add your first note.',
@@ -212,7 +214,7 @@ def main(*args, **kwargs):
 
 	while True:
 		clear_screen()
-		print_header()		
+		print_header()
 		print_chord(chord)
 		if error is not None:
 			print("[ERROR] ", error)
