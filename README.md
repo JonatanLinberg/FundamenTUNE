@@ -14,6 +14,7 @@ Suffer no more, start using **FundamenTUNE** today for all your crazy tuning nee
 - [x] ` > tune <note A> <note B> <delta interval>`
 - [ ] ` > norm <name>`
 - [ ] ` > set <note> <ratio>`
+- [ ] ` > crush <name> <resolution>`
 - [ ] ` > find <interval name> <fundamental> <depth>`
 
 
