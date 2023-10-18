@@ -56,6 +56,9 @@ def print_help():
 		"[ Base notes ]",
 		" > base <name> <new fundamental>")
 	print_rows(
+		"[ Downsample interval ]",
+		" > crush <name> <max resolution>")
+	print_rows(
 		"[ Print help menu ]",
 		" > help")
 
@@ -145,9 +148,7 @@ def cmd_del(chord, name):
 	del chord[name]
 
 
-def cmd_tune(chord, name, ref, d_ratio=None):
-	if d_ratio is None:
-		d_ratio = "1:1"
+def cmd_tune(chord, name, ref, d_ratio="1:1"):
 	try:
 		n, d = [int(a) for a in d_ratio.split(':')]
 	except:
@@ -203,6 +204,14 @@ def cmd_calc(chord, name, *expression):
 		raise Exception(f"{op} is not a valid operator")
 
 	add_note(chord, name, interval)
+
+def cmd_crush(chord, name, max_depth=None):
+	check_exists(chord, name)
+	if max_depth is not None:
+		max_depth = int(max_depth)
+
+	chord[name] = chord.pop(name).reduce_closest(max_depth=max_depth)[0]
+
 
 
 ##################################
@@ -273,6 +282,12 @@ def main(*args, **kwargs):
 					cmd_calc(chord, *args)
 				except Exception as e:
 					error = f"Could not calc note! ({e})"
+
+			elif cmd == "crush":
+				try:
+					cmd_crush(chord, *args)
+				except Exception as e:
+					error = f"Could not crush note! ({e})"
 
 			elif cmd == "help":
 				clear_screen()

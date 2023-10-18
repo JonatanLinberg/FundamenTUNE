@@ -1,10 +1,11 @@
-from math import log, gcd
+from math import log, gcd, ceil
+from misc import SortedList
 
 # Calculates equal temperament tuning of n semitones
 def equal_temp(n, base = 12):
 	return 2**(n / base)
 
-# calculates cent difference between two notes
+# calculates cent difference between two frequencies
 def cent_diff(a, b):
 	return log(a/b, 2) * 1200
 
@@ -57,6 +58,8 @@ class Interval():
 		return numer//cd, denom//cd
 
 	def __init__(self, numer, denom, fundamental=None, in_octave=False):
+		if numer <= 0 or denom <= 0:
+			raise Exception(f"Invalid interval ratio: {numer}:{denom}")
 		self.numer, self.denom = Interval.normalise(numer, denom, in_octave=in_octave)
 		self.fundamental = fundamental
 
@@ -99,6 +102,14 @@ class Interval():
 		return d
 
 	@property
+	def cents_off_piano(self):
+		d = cent_diff(self.frequency, 440)
+		d = d % 100
+		if d > 50:
+			d -= 100
+		return d
+
+	@property
 	def frequency(self):
 		if (self.fundamental is None):
 			return self.fraction
@@ -116,6 +127,30 @@ class Interval():
 		except AttributeError:
 			self.fundamental = new_fundamental
 
+	def reduce_closest(self, max_depth=None, n=1):
+		closest = SortedList(n, key=lambda x: abs(x.fraction - self.fraction))
+
+		if max_depth is not None:
+			max_depth = min(max_depth, self.denom-1)
+		else:
+			max_depth = self.denom-1
+
+		for i in range(max_depth, 0, -1):
+			x = ceil(self.fraction * i) # always round up to avoid 0/i
+			if closest.push(Interval(x, i, fundamental=self.fundamental)):
+				offset = 0
+				while True:
+					offset += 1
+					add_over = closest.push(Interval(x + offset, i, fundamental=self.fundamental))
+					add_under = closest.push(Interval(max(x - offset, 1), i, fundamental=self.fundamental))
+					if not add_over and not add_under:
+						break
+		if closest:
+			return closest
+		else:
+			return [self.copy()]
+
+
 	def copy(self):
 		return Interval(self.numer, self.denom, fundamental=self.fundamental)
 
@@ -124,7 +159,10 @@ class Interval():
 
 	# difference in cents
 	def __sub__(self, other):
-		return cent_diff(self.fraction, other.fraction)
+		if isinstance(other, Interval):
+			return cent_diff(self.fraction, other.fraction)
+		else:
+			return cent_diff(self.fraction, other)
 
 	# "musically" added intervals, i.e. M3 * P5 == M7
 	# if other is number, multiply frequency
@@ -152,7 +190,7 @@ class Interval():
 			return Interval(self.numer / float(other), self.denom, fundamental=self.fundamental)
 
 	def __str__(self):
-		return f"[{self.numer}:{self.denom}][{self.frequency:.2f} Hz] {self.note_abbr}({self.cents_off:+.1f} cents)"
+		return f"[{self.numer}:{self.denom}][{self.frequency:.2f} Hz] ({self.note_abbr} {self.cents_off:+.1f} cents | {self.cents_off_piano:+.1f} cents off piano)"
 
 	def __repr__(self):
 		return f"<class Interval: {self.__str__()}>"

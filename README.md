@@ -12,9 +12,9 @@ Suffer no more, start using **FundamenTUNE** today for all your crazy tuning nee
 - [x] ` > calc <note> <expression>`
 - [x] ` > base <note A> <fundamental>`
 - [x] ` > tune <note A> <note B> <delta interval>`
+- [x] ` > crush <name> <resolution>`
 - [ ] ` > norm <name>`
 - [ ] ` > set <note> <ratio>`
-- [ ] ` > crush <name> <resolution>`
 - [ ] ` > find <interval name> <fundamental> <depth>`
 
 
