@@ -68,7 +68,7 @@ class Header(Chunk):
     def from_bytes(cls, data_length, data):
         _format = int.from_bytes(data[:2], byteorder='big')
         n_tracks = int.from_bytes(data[2:4], byteorder='big')
-        
+
         raw_div = int.from_bytes(data[4:], byteorder='big')
         if (raw_div & 0x8000):  #subdiv of second
             raise NotImplementedException('Negative SMPTE delta time')
@@ -77,6 +77,9 @@ class Header(Chunk):
 
         return cls(data_length, _format, n_tracks, div)
 
+    @classmethod
+    def create_basic_header(cls, delta_ticks):
+        return cls( 6, 0, 1, { 'format':'delta_ticks', 'delta_ticks':delta_ticks } )
 
     def to_bytes(self, **kwargs):
         ret = b'MThd'
@@ -119,28 +122,39 @@ class Track(Chunk):
         events = []
 
         while (data != b''):
-            delta_time, data = decode_varlen(data)
+            delta_time, data = decode_varlen( data )
             status = data[0]
             if (status < 0x80):     # Running status -> use last status   !!! assumes only true for < 0x80
                 status = lastStatus
             lastStatus = status     # Save status for running status
-            
+
             if (status == 0xff):
                 e_type = data[1]
-                length, data = decode_varlen(data[2:])
+                length, data = decode_varlen( data[2:] )
                 events.append(Event(delta_time,
                                     status,
                                     e_type = e_type,
                                     datalen = length,
-                                    data = data[:length]))
+                                    data = data[:length] ))
                 data = data[length:]
-            
-            elif (status & 0xf0 == 0x80 or status & 0xf0 == 0x90):      # & 0xf0 bit 0-3 is channel nr
+
+            elif ( status & 0xf0 == Event._STATUS_NOTE_OFF or 
+                   status & 0xf0 == Event._STATUS_NOTE_ON ): # & 0xf0 bit 0-3 is channel nr
                 events.append(Event(delta_time,
-                                    status & 0xf0,  # mask channel
-                                    channel = data[0] & 0xf,
+                                    status & 0xf0, # mask channel
+                                    channel = status & 0xf, # mask status
                                     key = data[1],
-                                    velocity = data[2]))
+                                    velocity = data[2] ))
+                data = data[3:]
+
+            elif ( status & 0xf0 == Event._STATUS_PITCH ):
+                first = data[1] & 0x7f
+                second = data[2] & 0x7f
+                pitch_val = (second << 7) | first # 14-bit value: 0b00sssssssfffffff
+                events.append( Event( delta_time,
+                                      status & 0xf0, # mask ch
+                                      channel = status & 0xf, # mask status
+                                      pitch = pitch_val))
                 data = data[3:]
 
             else:
@@ -194,7 +208,7 @@ class Track(Chunk):
         key_off = Event.create_key_off(time+dur, key, vel=vel, ch=ch)
         self.add_event(key_on, 0)
         self.add_event(key_off, 0)
-    
+
     def remove_note(self, i):
         key_on = self.pop_event(i)
 
@@ -227,17 +241,19 @@ class Track(Chunk):
 
 class Event():
     _out_str_just_len = 12
-    _StATUS_NOTE_OFF  = 0x80
-    _StATUS_NOTE_ON   = 0x90
+    _STATUS_NOTE_OFF  = 0x80
+    _STATUS_NOTE_ON   = 0x90
+    _STATUS_PITCH     = 0xe0
     _STATUS_META      = 0xff
     _STATUS_NAME = {
-        _StATUS_NOTE_OFF:'Note off',
-        _StATUS_NOTE_ON:'Note on',
+        _STATUS_NOTE_OFF:'Note off',
+        _STATUS_NOTE_ON:'Note on',
+        _STATUS_PITCH:'Pitch bend',
         _STATUS_META:'Meta Event',
     }
     _TYPE_EOF = 0x2f
 
-    def __init__(self, delta_time, status, channel=None, key=None, velocity=None, e_type=None, datalen = 0, data=None):
+    def __init__(self, delta_time, status, channel=None, key=None, velocity=None, e_type=None, pitch=None, datalen = 0, data=None):
         if data and len(data) != datalen:
             print(f"ERROR! Inconsistent data/datalen: { data }/{ datalen }")
         self.delta_time = delta_time
@@ -245,17 +261,25 @@ class Event():
         self.channel = channel
         self.key = key
         self.velocity = velocity
+        self.pitch = pitch
         self.type = e_type
         self.datalen = datalen
         self.data = data
 
     @classmethod
     def create_key_on(cls, delta_time, key, vel=64, ch=0):
-        return cls(delta_time, Event._StATUS_NOTE_ON, ch, key, vel)
+        return cls(delta_time, Event._STATUS_NOTE_ON, ch, key, vel)
 
     @classmethod
     def create_key_off(cls, delta_time, key, vel=64, ch=0):
-        return cls(delta_time, Event._StATUS_NOTE_OFF, ch, key, vel)
+        return cls(delta_time, Event._STATUS_NOTE_OFF, ch, key, vel)
+
+    @classmethod
+    def create_pitch(cls, delta_time, ch = 0, pitch_val = 0x2000):
+        # 0x2000 == no pitch change
+        # range:  [ 0, 0x4000 )
+        return cls( delta_time, Event._STATUS_PITCH, channel=ch, pitch=pitch_val )
+
 
     @classmethod
     def create_meta(cls, delta_time, e_type, d_len, data):
@@ -270,7 +294,7 @@ class Event():
 
     def to_bytes(self):
         ret = encode_varlen(self.delta_time)
-        if (self.status == Event._StATUS_NOTE_OFF or self.status == Event._StATUS_NOTE_ON):
+        if (self.status == Event._STATUS_NOTE_OFF or self.status == Event._STATUS_NOTE_ON):
             ret += ((self.status) | self.channel).to_bytes(1, byteorder='big')
             ret += self.key.to_bytes(1, byteorder='big')
             ret += self.velocity.to_bytes(1, byteorder='big')
@@ -284,13 +308,15 @@ class Event():
 
     @property
     def cleanable(self):
-        return (self.status == Event._STATUS_META_EVENT and self.type != Event._TYPE_EOF)
+        return (self.status == Event._STATUS_META and self.type != Event._TYPE_EOF)
 
     #   delta_time  status  channel  key  velocity  misc
     def __str__(self):
         out = [ self.delta_time, self.get_status_name(), self.channel, self.key, self.velocity]
-        if (self.status == 0xff):
+        if ( self.status == Event._STATUS_META ):
             out.append("[%s] %a" % (hex(self.type).rjust(2, '0'), self.data))
+        if ( self.status == Event._STATUS_PITCH ):
+            out.append("[%d]" % (self.pitch - 0x2000) )
         return ''.join([_str(s).ljust(Event._out_str_just_len) for s in out])
 
 

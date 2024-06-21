@@ -217,11 +217,29 @@ def cmd_crush(chord, name, max_depth=None):
 
 	chord[name] = chord.pop(name).reduce_closest(max_depth=max_depth)[0]
 
-def cmd_midi( chord, filename = "chord" ):
+def cmd_midi( chord, filename="FundamenTUNE_chord" ):
 	if len(chord) == 0:
 		raise Exception(f"There are no notes to export")
+	if len(chord) > 15:
+		raise Exception(f"Midi chords can only contain at most 15 notes")
 
-	export_midi( chord, filename )
+	base_ch = input( "MPE common base channel (1):\n > " )
+	if base_ch:
+		base_ch = int(base_ch) - 1
+		if base_ch < 0:
+			raise Exception( "Channel must be between 1 and 16" )
+	else:
+		base_ch = 0
+
+	p_range = input( "Pitch bend range in semitones (48):\n > " )
+	if p_range:
+		p_range = int(p_range)
+		if not 1 <= p_range <= 96:
+			raise Exception( "Pitch bend range must be within 1 and 96 semitones" )
+	else:
+		p_range = 48
+
+	export_midi( chord, filename, base_ch, p_range )
 
 
 ##################################
@@ -298,6 +316,12 @@ def main(*args, **kwargs):
 					cmd_crush(chord, *args)
 				except Exception as e:
 					error = f"Could not crush note! ({e})"
+
+			elif cmd == "midi":
+				try:
+					cmd_midi(chord, *args)
+				except Exception as e:
+					error = f"Could not export midi file ({e})"
 
 			elif cmd == "help":
 				clear_screen()
