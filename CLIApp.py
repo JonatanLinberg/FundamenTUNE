@@ -1,6 +1,6 @@
 import os
 from interval import Interval
-
+from midi_helper import export_midi
 
 ##################################
 #   Print functions
@@ -58,6 +58,11 @@ def print_help():
 	print_rows(
 		"[ Downsample interval ]",
 		" > crush <name> <max resolution>")
+	print_rows(
+		"[ Export midi chord ]",
+		" > midi",
+		"or",
+		" > midi <file name>")
 	print_rows(
 		"[ Print help menu ]",
 		" > help")
@@ -212,6 +217,11 @@ def cmd_crush(chord, name, max_depth=None):
 
 	chord[name] = chord.pop(name).reduce_closest(max_depth=max_depth)[0]
 
+def cmd_midi( chord, filename = "chord" ):
+	if len(chord) == 0:
+		raise Exception(f"There are no notes to export")
+
+	export_midi( chord, filename )
 
 
 ##################################
