@@ -271,13 +271,18 @@ class Event():
         return cls(delta_time, Event._STATUS_NOTE_ON, ch, key, vel)
 
     @classmethod
-    def create_key_off(cls, delta_time, key, vel=64, ch=0):
+    def create_key_off(cls, delta_time, key, vel=0, ch=0):
         return cls(delta_time, Event._STATUS_NOTE_OFF, ch, key, vel)
 
     @classmethod
     def create_pitch(cls, delta_time, ch = 0, pitch_val = 0x2000):
         # 0x2000 == no pitch change
         # range:  [ 0, 0x4000 )
+        if pitch_val < 0:
+            pitch_val = 0
+        elif pitch_val >= 0x4000:
+            pitch_val = 0x3fff
+
         return cls( delta_time, Event._STATUS_PITCH, channel=ch, pitch=pitch_val )
 
 
@@ -294,16 +299,28 @@ class Event():
 
     def to_bytes(self):
         ret = encode_varlen(self.delta_time)
-        if (self.status == Event._STATUS_NOTE_OFF or self.status == Event._STATUS_NOTE_ON):
-            ret += ((self.status) | self.channel).to_bytes(1, byteorder='big')
+        if ( Event._STATUS_NOTE_OFF == self.status or
+             Event._STATUS_NOTE_ON  == self.status ):
+            ret += ( self.status | self.channel ).to_bytes(1, byteorder='big')
             ret += self.key.to_bytes(1, byteorder='big')
             ret += self.velocity.to_bytes(1, byteorder='big')
 
-        elif (self.status == Event._STATUS_META):
+        elif ( Event._STATUS_PITCH == self.status ):
+            ret += ( self.status | self.channel ).to_bytes(1, byteorder='big')
+            first = self.pitch & 0x7f
+            second = ( self.pitch >> 7 ) & 0x7f
+            ret += first.to_bytes(1, byteorder='big')
+            ret += second.to_bytes(1, byteorder='big')
+
+        elif ( Event._STATUS_META == self.status ):
             ret += self.status.to_bytes(1, byteorder='big')
             ret += self.type.to_bytes(1, byteorder='big')
             ret += encode_varlen(self.datalen)
             ret += self.data
+
+        else:
+            raise UnsupportedMidiException( f"Cannot encode event with status: ", hex(self.status) )
+
         return ret
 
     @property

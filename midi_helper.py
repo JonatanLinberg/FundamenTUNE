@@ -4,8 +4,8 @@ from interval import Interval, cent_diff
 def closest_midi_note( freq ):
     # A4 == 440 Hz == midi 69 (nice)
     diff = cent_diff( freq, 440 )
-    diff //= 100 # diff in semitones
-    return int(69 + diff)
+    diff /= 100 # diff in semitones
+    return round(69 + diff)
 
 def export_midi( chord, filename, base_channel, pitch_range ):
 
@@ -32,9 +32,10 @@ def export_midi( chord, filename, base_channel, pitch_range ):
 
         cents = note.cents_off_piano
         pitch_val = 0x2000 + round(cents * pitch_bend_scale)
-        events.append(
-            midi.Event.create_pitch( 0, ch=ch, pitch_val=pitch_val )
-        )
+        if pitch_val != 0x2000:
+            events.append(
+                midi.Event.create_pitch( 0, ch=ch, pitch_val=pitch_val )
+            )
 
         key = closest_midi_note( note.frequency )
         vel = 80
@@ -52,6 +53,9 @@ def export_midi( chord, filename, base_channel, pitch_range ):
         )
         delta_time = 0 # only first note should have delta_time > 0
 
+    events.append(
+        midi.Event.create_eof( 0 )
+    )
     track = midi.Track( events )
 
     midi.write_file( f"{filename}.mid", [header, track] )
