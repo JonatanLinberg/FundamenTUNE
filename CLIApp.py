@@ -25,9 +25,12 @@ def print_chord(chord, sort=True):
 		chord = dict(sorted(chord.items(), key=lambda item: item[1].frequency))
 	if len(chord) == 0:
 		print_rows(
-			'Write "add <name> <numerator>:<denominator> <fundamental>" to add your first note.',
-		    "Ex:",
-		    " > add E 5:4")
+			'To add your first note write "add <note> <frequency>"',
+			'ex:',
+			'  add A 440',
+			'',
+			'or write "help" for a list of commands.',
+		)
 	else:
 		for note in chord:
 			print(f"[{note}] {chord[note]}")
