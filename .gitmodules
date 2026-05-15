@@ -1,0 +1,4 @@
+[submodule "Midipy"]
+	path = Midipy
+	url = git@github.com:JonatanLinberg/Midipy.git
+	branch = main
